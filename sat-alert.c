@@ -129,9 +129,7 @@ void get_response(int sock, char *buf)
 	buf[n]='\0';
 }
 
-char *send_command(host, command)
-char *host, *command;
-{
+char *send_command(char *host, char *command){
 	int sk;
 
 	/* This function sends "command" to PREDICT running on
@@ -162,55 +160,42 @@ char *host, *command;
 	return string;
 }
 
-int AddToArray (DATA item)
-{
-        if(num_elements == num_allocated) // Are more refs required?
-        { 
-                // Feel free to change the initial number of refs
-                // and the rate at which refs are allocated.
-                if (num_allocated == 0)
-                        num_allocated = 3; // Start off with 3 refs
-                else
-                        num_allocated *= 2; // Double the number 
-                                                    // of refs allocated
+typedef struct {
+  char *array;
+  size_t used;
+  size_t size;
+} Array;
 
-                // Make the reallocation transactional 
-                // by using a temporary variable first
-                void *_tmp = realloc(the_array, (num_allocated * sizeof(DATA)));
+void initArray(Array *a, size_t initialSize) {
+  a->array = (char *)malloc(initialSize * sizeof(char));
+  a->used = 0;
+  a->size = initialSize;
+}
 
-                // If the reallocation didn't go so well,
-                // inform the user and bail out
-                if (!_tmp)
-                {
-                        fprintf(stderr, "ERROR: Couldn't realloc memory!\n");
-                        return(-1);
-                }
+void insertArray(Array *a, int element) {
+  // a->used is the number of used entries, because a->array[a->used++] updates a->used only *after* the array has been accessed.
+  // Therefore a->used can go up to a->size 
+  if (a->used == a->size) {
+    a->size *= 2;
+    a->array = (char *)realloc(a->array, a->size * sizeof(char));
+  }
+  a->array[a->used++] = element;
+}
 
-                // Things are looking good so far
-                the_array = (DATA*)_tmp;
-        }
-
-        the_array[num_elements] = item;
-        num_elements++;
-
-        return num_elements;
+void freeArray(Array *a) {
+  free(a->array);
+  a->array = NULL;
+  a->used = a->size = 0;
 }
 
 
-void send_command2(host, command)
-char *host, *command;
-{
+char *send_command2(char *host, char *command) {
 	int sk;
-	int i;
-
-	typedef struct {
-    	char *name;
-    	int number;
-	} DATA;
-
-	DATA    *the_array = NULL;
-	int     num_elements = 0; // Keeps track of the number of elements used
-	int     num_allocated = 0; // This is essentially how large the array is
+	Array a;
+	int i = 0;
+	size_t ind = 0;
+	static char text[4000];
+	initArray(&a, 4000);  // initially n elements
 
 	/* This function sends "command" to PREDICT running on
 	   machine "host", and displays the result of the command
@@ -237,15 +222,30 @@ char *host, *command;
 
 	while (string[0]!=26)  /* Control Z */
 	{
-		printf("%s",string);
+		// printf("%s",string);
+
+		for (ind = 0; ind < strlen(string); ind++) {
+			text[i] = string[ind];
+			// printf("%c", a.array[i]);
+			i++;
+			// insertArray(&a, i);  // automatically resizes as necessary
+		}
+			// printf("%c \n", string[ind]);
+
+		// sprintf(a.array[i],"%s \n",string);
+		// a.array[i] = "papa";
+		// i++;
 		string[0]=0;
+   		// printf("%c",*a.array);
    		get_response(sk,string);
 	}
 
 	printf("\n");
-
+	// printf("%s", a.array);
+	freeArray(&a);
 	/* Close the connection */
    	close(sk);
+   	return text;
 }
 
 int main()
@@ -255,14 +255,15 @@ int main()
 	float az, el, slong, slat, footprint, range, altitude,
 	      velocity, phase, eclipse_depth, squint;
 	time_t t;
-
+	Array a;
 
 
 	// if start== saturday then poll for the whole weekend and obtain a resume
 
 	sprintf(command,"PREDICT \"ISS\" %ld",start);
 	printf("%s\n",command );
-	send_command2("localhost",command);
+	a.array = send_command2("localhost",command);
+	printf("%s", a.array);
 	// strcpy(buf, send_command("localhost",command));
 	// printf("%s",buf);
 	// check if buf has Min El of say 20 degrees.
