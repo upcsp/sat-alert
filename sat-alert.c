@@ -56,12 +56,12 @@ int connectsock(char *host, char *service, char *protocol)
 	struct servent *pse;
 	struct protoent *ppe;
 	struct sockaddr_in sin;
-	
+
 	int s, type;
-	
+
 	bzero((char *)&sin,sizeof(struct sockaddr_in));
 	sin.sin_family=AF_INET;
-	
+
 	if ((pse=getservbyname(service,protocol)))
 		sin.sin_port=pse->s_port;
 
@@ -79,7 +79,7 @@ int connectsock(char *host, char *service, char *protocol)
 		printf("Can't get host: \"%s\".\n",host);
 		return -1;
 	}
-	
+
 	if ((ppe=getprotobyname(protocol))==0)
 		return -1;
 
@@ -87,7 +87,7 @@ int connectsock(char *host, char *service, char *protocol)
 		type=SOCK_DGRAM;
 	else
 		type=SOCK_STREAM;
-	
+
 	s=socket(PF_INET,type,ppe->p_proto);
 
 	if (s<0)
@@ -174,7 +174,7 @@ void initArray(Array *a, size_t initialSize) {
 
 void insertArray(Array *a, int element) {
   // a->used is the number of used entries, because a->array[a->used++] updates a->used only *after* the array has been accessed.
-  // Therefore a->used can go up to a->size 
+  // Therefore a->used can go up to a->size
   if (a->used == a->size) {
     a->size *= 2;
     a->array = (char *)realloc(a->array, a->size * sizeof(char));
@@ -222,11 +222,11 @@ char *send_command2(char *host, char *command) {
 
 	while (string[0]!=26)  /* Control Z */
 	{
-		// printf("%s",string);
+		printf("%s",string);
 
 		for (ind = 0; ind < strlen(string); ind++) {
 			text[i] = string[ind];
-			// printf("%c", a.array[i]);
+			printf("%c", a.array[i]);
 			i++;
 			// insertArray(&a, i);  // automatically resizes as necessary
 		}
@@ -240,7 +240,7 @@ char *send_command2(char *host, char *command) {
    		get_response(sk,string);
 	}
 
-	printf("\n");
+	printf("\n");start
 	// printf("%s", a.array);
 	freeArray(&a);
 	/* Close the connection */
