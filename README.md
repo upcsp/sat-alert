@@ -73,3 +73,4 @@ For automatic usage the command is the same but run by cronetab.
 
 ## Thanks
 We would like to thank the *PREDICT* developers for the great CLI tool for Satellite tracking that they have generated.
+https://github.com/koansys/predict
