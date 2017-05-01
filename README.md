@@ -1,19 +1,52 @@
 # sat-alert
 
-> Add crontab for periodic TLE Update (updateTLE.sh) :
-```"crontab -e"
+sat-alert is a small service oriented to be execute by the computer cronetab. It takes a date, a satellite name and url to post as CLI arguments. It returns a list of all the satellite passes above the ground station that *PREDICT* is configured to use.
+
+The package is composed by:
+	1. *sat-alarm.c*. This program is written in c. It retrieves data from *PREDICT* in server mode.
+	2. *updateTLE.sh*. This script only updates the local TLE's for *PREDICT* or *GPREDICT* to use. It does so by downloading the last published TLE'S at celestrak.com.
+
+This code is intended to be run on a server where *PREDICT* is running in server mode. Also, both codes are inteded to be added into a UNIX cronetab. *sat-alarm.c* should run once per day, while *updateTLE.sh* once per hour.
+
+## External libraries
+*sat-alarm.c* uses several libraries that need to be installed before compilation.
+Two of those need to be added dinamically while compiling. These are:
+	1. curl.h
+	2. json-c.h
+Therefore, after installing all the libraries, to compile:
 ```
-In crontab file add the follwoing line to run an hourly update of the TLE.
-> 0 * * * * ./home/tgs/repos/sat-alert/updateTLE.sh
-
-
-## PREDICT is put into server mode
-``` predict -s
+gcc sat-alarm.c -ljson -lcurl
 ```
-> By default, PREDICT uses socket port 1210 for communicating with client applications.
+## Crontab for periodic execution:
+```
+crontab -e
+```
+In crontab file add the follwoing line to run in an hourly basis, for example.
+```
+0 * * * * ./path/to/scheduled/code
+```
 
+## PREDICT configuration
+NOTE: By default, PREDICT uses socket port 1210 for communicating with client applications.
+First, install *PREDICT*.
+```
+sudo apt install predict
+```
+Now configure your QTH information and perform a first manual update of its TLE's.
+Finally, start it in server mode.
 
+```
+predict -s
+```
+## Example of manual usage
+After follwoing the previous steps just run the code like:
 
-## To Do
-	1. Cronjob for sat-alarm.c
-	2. Get Weekly Resume
+```
+sat-alert -s ISS -d 20/06/2017 -u https://hooks.slack.com/services/xxxxx
+```
+This would POST to the given URL information about the ISS passing above the ground station, the 20th of June of 2017.
+If date is not given, then the current date is taken.
+For automatic usage the command is the same but run by cronetab.
+
+## Thanks
+We would like to thank the *PREDICT* developers for the great CLI tool for Satellite tracking that they have generated.
