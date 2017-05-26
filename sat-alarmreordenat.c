@@ -56,6 +56,21 @@ void handler(){
 }
 
 
+int to_unix_time(char date[9]) {
+	struct tm tm;
+	time_t epoch;
+	if ( strptime(date, "%d/%m/%Y %H:%M:%S", &tm) != NULL ) {
+		// timegm gets the time (as if it is in UTC) and converts it into UNIX time
+		epoch = timegm(&tm);
+		// printf("TIME: %d\n",(int)epoch);
+	}
+	else
+		printf("Error with time conv");
+
+	return epoch;
+}
+
+
 int connectsock(char *host, char *service, char *protocol){
 	/* This function is used to connect to the server.  "host" is the
 	   name of the computer on which PREDICT is running in server mode.
@@ -139,73 +154,6 @@ void get_response(int sock, char *buf){
 }
 
 
-void post_slack(char daily_prediction[], time_t epoch ){
-	CURL *curl;
-	CURLcode res;
-
-	char Date[200];
-	char buffer[26];
-	char title[200];
-	struct tm* tm_info;
-	tm_info = gmtime(&epoch);
-	strftime(buffer, 26, "%d-%m-%Y", tm_info);
-	sprintf(Date,"%s ISS passes", buffer);
-	sprintf(title, "Date                          Time (UTC)                 El   Az     Ph    Lat    Lon    R      Orbit ");
-
-
-	//JSON MESSAGE CREATION
-	//JSON object
-	json_object * jObj = json_object_new_object();
-	json_object * subObj = json_object_new_object();
-	/*Creating a json array*/
-	json_object *jarray = json_object_new_array();
-
-	//Create a string JSON element
-	json_object *pretext= json_object_new_string(Date);
-	json_object *jString = json_object_new_string(daily_prediction);
-	//Create a string JSON element
-	json_object *color = json_object_new_string("#36a64f");
-	//Create a string JSON element
-	json_object *date= json_object_new_string(title);
-
-	json_object_object_add(subObj,"pretext",pretext);
-	json_object_object_add(subObj,"text", jString);
-	json_object_object_add(subObj,"color",color);
-	json_object_object_add(subObj,"title",date);
-
-	json_object_array_add(jarray,subObj);
-
-	json_object_object_add(jObj,"attachments", jarray);
-
-
-
-	//CURL PROCESS
-	//Start Curl with the parameter that starts all the modules,only needed once
-	curl_global_init(CURL_GLOBAL_ALL);
-
-	//Create an easy handle curl
-	curl = curl_easy_init();
-
-	if(curl) {
-		//Define Curl propierties:
-		curl_easy_setopt(curl, CURLOPT_URL, url_webhook);
-		curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
-		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json_object_to_json_string(jObj));
-
-		//Perform the request, res will get the return code
-		res = curl_easy_perform(curl);
-		//Check for errors
-		if(res != CURLE_OK)
-			fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
-		//Cleanup the easy handle curl created
-		curl_easy_cleanup(curl);
-	}
-	//Cleanup the global curl, cleanup all modules
-	curl_global_cleanup();
-
-}
-
-
 char * send_command(char *host, char *command, int * get_day, long int * get_time) {
 	int sk;
 	int j = 1;
@@ -279,18 +227,70 @@ char * send_command(char *host, char *command, int * get_day, long int * get_tim
 }
 
 
-int to_unix_time(char date[9]) {
-	struct tm tm;
-	time_t epoch;
-	if ( strptime(date, "%d/%m/%Y %H:%M:%S", &tm) != NULL ) {
-		// timegm gets the time (as if it is in UTC) and converts it into UNIX time
-		epoch = timegm(&tm);
-		// printf("TIME: %d\n",(int)epoch);
-	}
-	else
-		printf("Error with time conv");
+void post_slack(char daily_prediction[], time_t epoch ){
+	CURL *curl;
+	CURLcode res;
 
-	return epoch;
+	char Date[200];
+	char buffer[26];
+	char title[200];
+	struct tm* tm_info;
+	tm_info = gmtime(&epoch);
+	strftime(buffer, 26, "%d-%m-%Y", tm_info);
+	sprintf(Date,"%s ISS passes", buffer);
+	sprintf(title, "Date                          Time (UTC)                 El   Az     Ph    Lat    Lon    R      Orbit ");
+
+
+	//JSON MESSAGE CREATION
+	//JSON object
+	json_object * jObj = json_object_new_object();
+	json_object * subObj = json_object_new_object();
+	/*Creating a json array*/
+	json_object *jarray = json_object_new_array();
+
+	//Create a string JSON element
+	json_object *pretext= json_object_new_string(Date);
+	json_object *jString = json_object_new_string(daily_prediction);
+	//Create a string JSON element
+	json_object *color = json_object_new_string("#1750a7");//36a64f
+	//Create a string JSON element
+	json_object *date= json_object_new_string(title);
+
+	json_object_object_add(subObj,"pretext",pretext);
+	json_object_object_add(subObj,"text", jString);
+	json_object_object_add(subObj,"color",color);
+	json_object_object_add(subObj,"title",date);
+
+	json_object_array_add(jarray,subObj);
+
+	json_object_object_add(jObj,"attachments", jarray);
+
+
+
+	//CURL PROCESS
+	//Start Curl with the parameter that starts all the modules,only needed once
+	curl_global_init(CURL_GLOBAL_ALL);
+
+	//Create an easy handle curl
+	curl = curl_easy_init();
+
+	if(curl) {
+		//Define Curl propierties:
+		curl_easy_setopt(curl, CURLOPT_URL, url_webhook);
+		curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
+		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json_object_to_json_string(jObj));
+
+		//Perform the request, res will get the return code
+		res = curl_easy_perform(curl);
+		//Check for errors
+		if(res != CURLE_OK)
+			fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+		//Cleanup the easy handle curl created
+		curl_easy_cleanup(curl);
+	}
+	//Cleanup the global curl, cleanup all modules
+	curl_global_cleanup();
+
 }
 
 
@@ -350,7 +350,40 @@ void get_daily_prediction(int time_step, int today, time_t epoch, char sat_name[
 
 
 void get_next_prediction(int time_step, int today, time_t epoch, char sat_name[]) {
-//
+	int the_date = (int)epoch;
+	char command[128];
+	char * single_prediction;
+
+	int get_day = today;
+	long int get_time = 1;
+
+
+	sprintf(command,"PREDICT %s %d", sat_name, the_date);
+	single_prediction = send_command("localhost",command, &get_day, &get_time);
+
+	char Elmin[]="10";
+	char El[3]="0";
+
+	if (strcmp(El, Elmin)<0){
+		//post_slack(single_prediction, epoch);
+
+
+		//printf("%.*single_prediction\n", len,  single_prediction + start);
+
+		
+		
+
+		int beginindex=37;
+		int endindex=41;
+	
+		strncpy(El, single_prediction+beginindex, endindex-beginindex);
+
+
+		printf("EL: %s \n",El);
+
+		
+
+	}
 
 }
 
@@ -432,7 +465,7 @@ int main(int argc, char **argv){
 
 	//Execution
 	// (Toni: Aqui més endavant podem posar rutines més complexes, delete me)
-	get_daily_prediction(time_step,day,epoch,sat_name);
+	//get_daily_prediction(time_step,day,epoch,sat_name);
 	get_next_prediction(time_step,day,epoch,sat_name);
 
 
